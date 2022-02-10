@@ -1,3 +1,4 @@
+import threading
 from socket import *
 from Client_details import ClientD
 from threading import Thread
@@ -14,8 +15,25 @@ class Server:
         self.port_dict = {}
         self.name_dict = {}
         self.first_port = 55000
+        self.lock = threading.Lock()
 
-    # def listen(self):
+    # this function works as the listener to the clients
+    def listen(self):
+        while True:
+            self.lock.acquire()
+            data = self.serverSocket.recv(1024)
+            list1 = data.split()
+            if list[0] == "disconnect":
+                self.disconnect(data[1])
+                continue
+            if list1[0] == "get_list":
+                name_list = self.get_list()
+                sock = self.name_dict[list1[1]].socket
+                sock.send(bytes(str(name_list).encode()))
+                continue
+            message = Massage(list1[1], list1[3], list1[4])
+            self.send_message(message)
+            self.lock.release()
 
     # this function return the list of all the users.
     def get_list(self) -> []:
@@ -57,13 +75,15 @@ class Server:
         self.name_dict[name].socket.close()
         self.name_dict.pop(name)
         self.port_dict[port] = None
-        message = Massage("server", name+ " disconnect")
+        message = Massage("server", name + " disconnected")
         self.send_message(message)
+
 
 if __name__ == '__main__':
     server = Server()
     for i in range(16):
         server.port_dict[server.first_port + i] = None
+    thread = Thread(target=server.listen).start()
     while True:
         freePort = 0
         for i in server.port_dict.keys():
@@ -71,6 +91,7 @@ if __name__ == '__main__':
                 freePort = i
                 break
         if freePort == 0:
+            print("connection was not accepted")
             continue
         connectionSocket, addr = server.serverSocket.accept()
         name = connectionSocket.recv(1024).decode()
@@ -78,13 +99,12 @@ if __name__ == '__main__':
             sentence = "this name is taken"
             connectionSocket.send(bytes(sentence.encode()))
             continue
-        thread = Thread(target= ).start()
         client = ClientD(connectionSocket, addr, name, thread, freePort)
         server.port_dict[freePort] = client
         server.name_dict[name] = client
         sentence = "connection received"
         connectionSocket.send(bytes(sentence.encode()))
-        message = Massage("server", name+ " is connected")
+        message = Massage("server", name + " is connected")
         server.send_message(message)
     server.serverSocket.close()
 

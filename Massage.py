@@ -5,4 +5,4 @@ class Massage:
         self.text = text
 
     def __repr__(self):
-        return "from: " + self.src + " to: " + self.dest + "\n" + self.text + ""
+        return "from: " + self.src + " to: " + self.dest + " \n" + self.text + ""
