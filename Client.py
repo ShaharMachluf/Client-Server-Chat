@@ -3,10 +3,10 @@ from Massage import Massage
 import threading
 
 class Client:
-    def __init__(self, name):
+    def __init__(self, name, server):
         self.name = name
         self.lock = threading.Lock()
-        serverName = 'localhost'
+        serverName = server
         serverPort = 50000
         self.socket = socket(AF_INET, SOCK_STREAM)
         self.socket.connect((serverName, serverPort))
@@ -14,6 +14,7 @@ class Client:
         self.socket.send(sentence.encode())
         # see if the connection was accepted
         print(self.socket.recv(1024))
+        listen = threading.Thread(target=self.get_message).start()
 
     def disconnect(self):
         # disconnect from server

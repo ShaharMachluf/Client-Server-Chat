@@ -1,9 +1,11 @@
+import socket
 import threading
 from socket import *
 from Client_details import ClientD
 from threading import Thread
 from Massage import Massage
-from concurrent import futures
+from server_gui import ServerGUI
+
 
 class Server:
     def __init__(self):
@@ -15,15 +17,16 @@ class Server:
         self.port_dict = {}
         self.name_dict = {}
         self.first_port = 55000
+        self.serverSocket.settimeout(3)
         self.lock = threading.Lock()
 
     # this function works as the listener to the clients
     def listen(self):
-        while True:
+        while len(self.name_dict) > 0:
             self.lock.acquire()
-            data = self.serverSocket.recv(1024)
-            list1 = data.split()
-            if list[0] == "disconnect":
+            data = self.serverSocket.recv(1024).decode()
+            list1 = data.split()  # todo: check \n
+            if list1[0] == "disconnect":
                 self.disconnect(data[1])
                 continue
             if list1[0] == "get_list":
@@ -31,7 +34,10 @@ class Server:
                 sock = self.name_dict[list1[1]].socket
                 sock.send(bytes(str(name_list).encode()))
                 continue
-            message = Massage(list1[1], list1[3], list1[4])
+            text = ""
+            for i in range(4, len(list1)):
+                text = text + list1[i] + " "
+            message = Massage(list1[1], text, list1[3])
             self.send_message(message)
             self.lock.release()
 
@@ -78,34 +84,43 @@ class Server:
         message = Massage("server", name + " disconnected")
         self.send_message(message)
 
+def start(gui : ServerGUI):
+    while True:
+        if gui.button_start.is_pressed:
+            server = Server()
+            for i in range(16):
+                server.port_dict[server.first_port + i] = None
+            thread = Thread(target=server.listen).start()
+            while gui.button_start.is_pressed:
+                freePort = 0
+                for i in server.port_dict.keys():
+                    if server.port_dict[i] is None:
+                        freePort = i
+                        break
+                if freePort == 0:
+                    print("connection was not accepted")
+                    continue
+                try:
+                    connectionSocket, addr = server.serverSocket.accept()
+                except Exception:
+                    continue
+                name = connectionSocket.recv(1024).decode()
+                if name in server.name_dict:
+                    sentence = "this name is taken"
+                    connectionSocket.send(bytes(sentence.encode()))
+                    continue
+                client = ClientD(connectionSocket, addr, name, freePort)
+                server.port_dict[freePort] = client
+                server.name_dict[name] = client
+                sentence = "connection received"
+                connectionSocket.send(bytes(sentence.encode()))
+                message = Massage("server", name + " is connected")
+                server.send_message(message)
+            server.serverSocket.close()
+            print("the server is closed")
 
 if __name__ == '__main__':
-    server = Server()
-    for i in range(16):
-        server.port_dict[server.first_port + i] = None
-    thread = Thread(target=server.listen).start()
-    while True:
-        freePort = 0
-        for i in server.port_dict.keys():
-            if server.port_dict[i] is None:
-                freePort = i
-                break
-        if freePort == 0:
-            print("connection was not accepted")
-            continue
-        connectionSocket, addr = server.serverSocket.accept()
-        name = connectionSocket.recv(1024).decode()
-        if name in server.name_dict:
-            sentence = "this name is taken"
-            connectionSocket.send(bytes(sentence.encode()))
-            continue
-        client = ClientD(connectionSocket, addr, name, thread, freePort)
-        server.port_dict[freePort] = client
-        server.name_dict[name] = client
-        sentence = "connection received"
-        connectionSocket.send(bytes(sentence.encode()))
-        message = Massage("server", name + " is connected")
-        server.send_message(message)
-    server.serverSocket.close()
-
-
+    gui = ServerGUI()
+    # gui_thread = threading.Thread(target=gui.display).start()
+    server_thread = threading.Thread(target=start, args=[gui]).start()
+    gui.display()
