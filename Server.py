@@ -84,7 +84,8 @@ class Server:
         message = Massage("server", name + " disconnected")
         self.send_message(message)
 
-def start(gui : ServerGUI):
+
+def start(gui: ServerGUI):
     while True:
         if gui.button_start.is_pressed:
             server = Server()
@@ -118,6 +119,7 @@ def start(gui : ServerGUI):
                 server.send_message(message)
             server.serverSocket.close()
             print("the server is closed")
+
 
 if __name__ == '__main__':
     gui = ServerGUI()
