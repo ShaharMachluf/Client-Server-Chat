@@ -1,6 +1,8 @@
 from socket import *
 from Massage import Massage
 import threading
+import easygui
+
 
 class Client:
     def __init__(self, name, server):
@@ -37,5 +39,9 @@ class Client:
         # receive messages from other users
         while True:
             self.lock.acquire()
-            print(self.socket.recv(1024))
+            massage = self.socket.recv(1024).decode()
+            # print(self.socket.recv(1024))
+            if massage != "":
+                easygui.msgbox("you get new massage", "get massage")
+                easygui.msgbox(massage, "new massage")
             self.lock.release()
