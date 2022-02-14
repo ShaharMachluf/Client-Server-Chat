@@ -1,7 +1,7 @@
 class Massage:
     def __init__(self, src, text, dest=None):
         self.src = src
-        if dest is None:
+        if dest is None or dest == "":
             self.dest = "all"
         else:
             self.dest = dest
