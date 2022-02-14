@@ -18,34 +18,37 @@ class Server:
         self.name_dict = {}
         self.first_port = 55000
         self.serverSocket.settimeout(3)
-        self.lock = threading.Lock()
+        # self.lock = threading.Lock()
 
     # this function works as the listener to the clients
-    def listen(self, socket, name):
+    def listen(self, socket, name, lock):
         while True:
             if name not in self.name_dict.keys():
                 break
-            self.lock.acquire()
+            lock.acquire()
             try:
                 data = socket.recv(1024).decode()
             except Exception:
-                self.lock.release()
+                lock.release()
                 continue
             list1 = data.split()  # todo: check \n
             if list1[0] == "disconnect":
+                print("enter")
                 self.disconnect(list1[1])
                 break
             if list1[0] == "get_list":
                 name_list = self.get_list()
                 sock = self.name_dict[list1[1]].socket
                 sock.send(bytes(str(name_list).encode()))
+                lock.release()
                 continue
             text = ""
             for i in range(4, len(list1)):
                 text = text + list1[i] + " "
             message = Massage(list1[1], text, list1[3])
             self.send_message(message)
-            self.lock.release()
+            # list1.clear()
+            lock.release()
 
     # this function return the list of all the users.
     def get_list(self) -> []:
@@ -124,7 +127,8 @@ def start(gui: ServerGUI):
                 client = ClientD(connectionSocket, addr, name, freePort)
                 server.port_dict[freePort] = client
                 server.name_dict[name] = client
-                thread = Thread(target=server.listen, args=[connectionSocket, name]).start()
+                lock = threading.Lock()
+                thread = threading.Thread(target=server.listen, args=[connectionSocket, name, lock]).start()
                 sentence = "connection received"
                 connectionSocket.send(bytes(sentence.encode()))
                 message = Massage("server", name + " is connected")
@@ -135,6 +139,5 @@ def start(gui: ServerGUI):
 
 if __name__ == '__main__':
     gui = ServerGUI()
-    # gui_thread = threading.Thread(target=gui.display).start()
     server_thread = threading.Thread(target=start, args=[gui]).start()
     gui.display()
