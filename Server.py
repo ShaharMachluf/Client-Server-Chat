@@ -21,30 +21,31 @@ class Server:
         self.lock = threading.Lock()
 
     # this function works as the listener to the clients
-    def listen(self, socket):
+    def listen(self, socket, name):
         while True:
-            if len(self.name_dict) > 0:
-                self.lock.acquire()
-                try:
-                    data = socket.recv(1024).decode()
-                except Exception:
-                    self.lock.release()
-                    continue
-                list1 = data.split()  # todo: check \n
-                if list1[0] == "disconnect":
-                    self.disconnect(data[1])
-                    continue
-                if list1[0] == "get_list":
-                    name_list = self.get_list()
-                    sock = self.name_dict[list1[1]].socket
-                    sock.send(bytes(str(name_list).encode()))
-                    continue
-                text = ""
-                for i in range(4, len(list1)):
-                    text = text + list1[i] + " "
-                message = Massage(list1[1], text, list1[3])
-                self.send_message(message)
+            if name not in self.name_dict.keys():
+                break
+            self.lock.acquire()
+            try:
+                data = socket.recv(1024).decode()
+            except Exception:
                 self.lock.release()
+                continue
+            list1 = data.split()  # todo: check \n
+            if list1[0] == "disconnect":
+                self.disconnect(list1[1])
+                break
+            if list1[0] == "get_list":
+                name_list = self.get_list()
+                sock = self.name_dict[list1[1]].socket
+                sock.send(bytes(str(name_list).encode()))
+                continue
+            text = ""
+            for i in range(4, len(list1)):
+                text = text + list1[i] + " "
+            message = Massage(list1[1], text, list1[3])
+            self.send_message(message)
+            self.lock.release()
 
     # this function return the list of all the users.
     def get_list(self) -> []:
@@ -56,15 +57,16 @@ class Server:
     # this function get a message and sent it to the destination.
     def send_message(self, message):
         dest = message.dest
-        if dest is None:
+        if dest == "all":
             sentence = repr(message)
             for i in self.name_dict.values():
                 sock = i.socket
                 sock.send(bytes(sentence.encode()))
             src = message.src
-            sock = self.name_dict[src].socket
-            sentence2 = "the message sent"
-            sock.send(bytes(sentence2.encode()))
+            if src != "server":
+                sock = self.name_dict[src].socket
+                sentence2 = "the message sent"
+                sock.send(bytes(sentence2.encode()))
             return
         if dest not in self.name_dict.keys():
             src = message.src
@@ -83,6 +85,8 @@ class Server:
 
     # this function disconnect the client
     def disconnect(self, name):
+        message1 = Massage("server", "you are disconnected", name)
+        self.send_message(message1)
         port = self.name_dict[name].port
         self.name_dict[name].socket.close()
         self.name_dict.pop(name)
@@ -112,17 +116,18 @@ def start(gui: ServerGUI):
                 except Exception:
                     continue
                 name = connectionSocket.recv(1024).decode()
-                if name in server.name_dict:
-                    sentence = "this name is taken"
+                if name in server.name_dict.keys():
+                    sentence = "this name is taken, try again"
                     connectionSocket.send(bytes(sentence.encode()))
+                    # connectionSocket.close()
                     continue
-                thread = Thread(target=server.listen, args=[connectionSocket]).start()
                 client = ClientD(connectionSocket, addr, name, freePort)
                 server.port_dict[freePort] = client
                 server.name_dict[name] = client
+                thread = Thread(target=server.listen, args=[connectionSocket, name]).start()
                 sentence = "connection received"
                 connectionSocket.send(bytes(sentence.encode()))
-                message = Massage("server", name + " is connected", name)
+                message = Massage("server", name + " is connected")
                 server.send_message(message)
             server.serverSocket.close()
             print("the server is closed")

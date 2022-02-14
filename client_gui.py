@@ -21,9 +21,12 @@ class ClientGUI:
 
     def display(self):
         enter = False
+        pygame.display.set_caption("Client")
         while True:
             for eve in pygame.event.get():
                 if eve.type == pygame.QUIT:
+                    if enter:
+                        client.disconnect()
                     pygame.quit()
                     exit(0)
                 if eve.type == pygame.MOUSEBUTTONDOWN:
@@ -40,6 +43,7 @@ class ClientGUI:
                     server = easygui.enterbox('enter your server name:', 'Log in')
                     client = Client(name, server)
                     enter = True
+                    pygame.display.set_caption(client.name)
                 self.button_login.text = "Log out"
                 pygame.draw.rect(self.screen, self.button_getlist.color, self.button_getlist.rect)
                 button_getlist_text = self.Font.render(self.button_getlist.text, True, (0, 0, 0))
@@ -56,13 +60,15 @@ class ClientGUI:
                     client.send_message(text, dest)
                     self.button_send.pressed()
             else:
-                enter = False
+                if enter:
+                    enter = False
+                    client.disconnect()
+                    pygame.display.set_caption("Client")
                 self.button_login.text = "Log in"
             button_login_text = self.Font.render(self.button_login.text, True, (0, 0, 0))
             self.screen.blit(button_login_text, (self.button_login.rect.x + 10, self.button_login.rect.y + 5))
             pygame.display.update()
             self.screen.fill(pygame.Color(255, 250, 250))
-            pygame.display.set_caption("Client")
             self.clock.tick(60)
 
 
