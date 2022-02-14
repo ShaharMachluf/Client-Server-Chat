@@ -48,18 +48,23 @@ class ClientGUI:
                 button_send_text = self.Font.render(self.button_send.text, True, (0, 0, 0))
                 self.screen.blit(button_send_text, (self.button_send.rect.x, self.button_send.rect.y + 5))
                 if self.button_getlist.is_pressed:
-                    list1 = client.get_list()
-                    easygui.msgbox(list1, "users list")
+                    client.get_list()
+                    self.button_getlist.pressed()
                 if self.button_send.is_pressed:
                     dest = easygui.enterbox("enter your massage destination:", "send massage")
                     text = easygui.enterbox("enter your massage:", "send massage")
                     client.send_message(text, dest)
+                    self.button_send.pressed()
             else:
                 enter = False
                 self.button_login.text = "Log in"
             button_login_text = self.Font.render(self.button_login.text, True, (0, 0, 0))
-            self.screen.blit(button_login_text, (self.button_login.rect.x + 10, self.button_login.rect.y+5))
+            self.screen.blit(button_login_text, (self.button_login.rect.x + 10, self.button_login.rect.y + 5))
             pygame.display.update()
             self.screen.fill(pygame.Color(255, 250, 250))
             pygame.display.set_caption("Client")
             self.clock.tick(60)
+
+
+def start():
+    gui = ClientGUI()

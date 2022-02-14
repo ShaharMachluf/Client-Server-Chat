@@ -32,8 +32,8 @@ class Client:
 
     def get_list(self):
         # get a list of users from the server
-        self.socket.send(("get_list " + self.name + "").encode())
-        return self.socket.recv(1024)
+        self.socket.send(bytes(("get_list " + self.name + "").encode()))
+        # return self.socket.recv(1024)
 
     def get_message(self):
         # receive messages from other users
@@ -42,6 +42,5 @@ class Client:
             massage = self.socket.recv(1024).decode()
             # print(self.socket.recv(1024))
             if massage != "":
-                easygui.msgbox("you get new massage", "get massage")
-                easygui.msgbox(massage, "new massage")
+                easygui.msgbox("you got new massage:\n" + massage, "new massage")
             self.lock.release()
