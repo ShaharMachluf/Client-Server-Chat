@@ -11,14 +11,19 @@ class Client:
         self.name = name
         self.lock = threading.Lock()
         serverName = server
-        serverPort = 50000
+        serverPort = 50001
         while flag:
             self.socket = socket(AF_INET, SOCK_STREAM)
             self.socket.connect((serverName, serverPort))
+            # self.socket.settimeout(3)
             sentence = "" + self.name
             self.socket.send(bytes(sentence.encode()))
             # see if the connection was accepted
+            # try:
             text = self.socket.recv(1024).decode()
+            # except Exception:
+            #     easygui.msgbox("connection not received", "connection to server")
+            #     break
             easygui.msgbox(text, "connection to server")
             if text == "this name is taken, try again":
                 self.socket.close()
@@ -38,6 +43,7 @@ class Client:
         message = Massage(self.name, text, dest)
         sentence = repr(message)
         self.socket.send(bytes(sentence.encode()))
+        return sentence
 
     def get_list(self):
         # get a list of users from the server

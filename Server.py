@@ -9,7 +9,7 @@ from server_gui import ServerGUI
 
 class Server:
     def __init__(self):
-        self.serverPort = 50000
+        self.serverPort = 50001
         self.serverSocket = socket(AF_INET, SOCK_STREAM)
         self.serverSocket.bind(('127.0.0.1', self.serverPort))
         self.serverSocket.listen(1000)
@@ -31,7 +31,7 @@ class Server:
             except Exception:
                 lock.release()
                 continue
-            list1 = data.split()  # todo: check \n
+            list1 = data.split()
             if list1[0] == "disconnect":
                 print("enter")
                 self.disconnect(list1[1])
@@ -47,7 +47,6 @@ class Server:
                 text = text + list1[i] + " "
             message = Massage(list1[1], text, list1[3])
             self.send_message(message)
-            # list1.clear()
             lock.release()
 
     # this function return the list of all the users.
@@ -70,13 +69,13 @@ class Server:
                 sock = self.name_dict[src].socket
                 sentence2 = "the message sent"
                 sock.send(bytes(sentence2.encode()))
-            return
+            return sentence
         if dest not in self.name_dict.keys():
             src = message.src
             sock = self.name_dict[src].socket
             sentence = "this destination does not exist"
             sock.send(bytes(sentence.encode()))
-            return
+            return sentence
         sock = self.name_dict[dest].socket
         sentence = repr(message)
         sock.send(bytes(sentence.encode()))
@@ -85,6 +84,7 @@ class Server:
             sock = self.name_dict[src].socket
             sentence2 = "the message sent"
             sock.send(bytes(sentence2.encode()))
+        return sentence
 
     # this function disconnect the client
     def disconnect(self, name):
@@ -96,6 +96,7 @@ class Server:
         self.port_dict[port] = None
         message = Massage("server", name + " disconnected")
         self.send_message(message)
+        return message
 
 
 def start(gui: ServerGUI):
@@ -104,7 +105,6 @@ def start(gui: ServerGUI):
             server = Server()
             for i in range(16):
                 server.port_dict[server.first_port + i] = None
-            # thread = Thread(target=server.listen).start()
             while gui.button_start.is_pressed:
                 freePort = 0
                 for i in server.port_dict.keys():
