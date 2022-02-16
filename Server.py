@@ -18,12 +18,12 @@ class Server:
         self.name_dict = {}
         self.first_port = 55000
         self.serverSocket.settimeout(3)
-        # self.lock = threading.Lock()
+        # self.lock = threading.Lock()  #todo: ask chen why is it in #?
 
     # this function works as the listener to the clients
     def listen(self, socket, name, lock):
         while True:
-            if name not in self.name_dict.keys():
+            if name not in self.name_dict.keys():  # user is disconnected
                 break
             lock.acquire()
             try:
@@ -42,7 +42,7 @@ class Server:
                 sock.send(bytes(str(name_list).encode()))
                 lock.release()
                 continue
-            text = ""
+            text = ""  # this is a message that needs to be sent
             for i in range(4, len(list1)):
                 text = text + list1[i] + " "
             message = Massage(list1[1], text, list1[3])
@@ -61,30 +61,29 @@ class Server:
         dest = message.dest
         if dest == "all":
             sentence = repr(message)
-            for i in self.name_dict.values():
+            for i in self.name_dict.values():  # send to everyone
                 sock = i.socket
                 sock.send(bytes(sentence.encode()))
             src = message.src
-            if src != "server":
+            if src != "server":  # let the sender know that his message was sent successfully
                 sock = self.name_dict[src].socket
                 sentence2 = "the message sent"
                 sock.send(bytes(sentence2.encode()))
-            return sentence
+            return
         if dest not in self.name_dict.keys():
             src = message.src
             sock = self.name_dict[src].socket
             sentence = "this destination does not exist"
             sock.send(bytes(sentence.encode()))
-            return sentence
+            return
         sock = self.name_dict[dest].socket
         sentence = repr(message)
         sock.send(bytes(sentence.encode()))
         src = message.src
         if src != "server":
             sock = self.name_dict[src].socket
-            sentence2 = "the message sent"
+            sentence2 = "the message sent"  # let the sender know that his message was sent successfully
             sock.send(bytes(sentence2.encode()))
-        return sentence
 
     # this function disconnect the client
     def disconnect(self, name):
@@ -96,7 +95,6 @@ class Server:
         self.port_dict[port] = None
         message = Massage("server", name + " disconnected")
         self.send_message(message)
-        return message
 
 
 def start(gui: ServerGUI):
@@ -104,10 +102,10 @@ def start(gui: ServerGUI):
         if gui.button_start.is_pressed:
             server = Server()
             for i in range(16):
-                server.port_dict[server.first_port + i] = None
+                server.port_dict[server.first_port + i] = None  # init all the ports
             while gui.button_start.is_pressed:
                 freePort = 0
-                for i in server.port_dict.keys():
+                for i in server.port_dict.keys():  # check if there is a free port
                     if server.port_dict[i] is None:
                         freePort = i
                         break
@@ -128,6 +126,7 @@ def start(gui: ServerGUI):
                 server.port_dict[freePort] = client
                 server.name_dict[name] = client
                 lock = threading.Lock()
+                # open thread that listens to this client
                 thread = threading.Thread(target=server.listen, args=[connectionSocket, name, lock]).start()
                 sentence = "connection received"
                 connectionSocket.send(bytes(sentence.encode()))
