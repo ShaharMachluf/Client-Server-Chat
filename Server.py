@@ -13,11 +13,15 @@ class Server:
         self.serverSocket = socket(AF_INET, SOCK_STREAM)
         self.serverSocket.bind(('127.0.0.1', self.serverPort))
         self.serverSocket.listen(1000)
+        self.udpPort = 50002
+        self.udpSocket = socket(AF_INET, SOCK_DGRAM)
+        self.udpSocket.bind(('127.0.0.1', self.udpPort))
         print("the server is ready to receive")
         self.port_dict = {}
         self.name_dict = {}
         self.first_port = 55000
         self.serverSocket.settimeout(3)
+        self.file_list = ["file1", "file2"]  # todo: מאיפה אנחנו יודעים איזה קבצים יש
 
     # this function works as the listener to the clients
     def listen(self, socket, name, lock):
@@ -35,6 +39,16 @@ class Server:
                 print("enter")
                 self.disconnect(list1[1])
                 break
+            if list1[0] == "get_files":
+                files = self.get_files()
+                sock = self.name_dict[list1[1]].socket
+                sock.send(bytes(str(files).encode()))
+                lock.release()
+                continue
+            if list1[0] == "file":
+                self.send_file(list1[1], name)
+                lock.release()
+                continue
             if list1[0] == "get_list":
                 name_list = self.get_list()
                 sock = self.name_dict[list1[1]].socket
@@ -47,6 +61,9 @@ class Server:
             message = Massage(list1[1], text, list1[3])
             self.send_message(message)
             lock.release()
+
+    def get_files(self):
+        return self.file_list
 
     # this function return the list of all the users.
     def get_list(self) -> []:
@@ -83,6 +100,32 @@ class Server:
             sock = self.name_dict[src].socket
             sentence2 = "the message sent"  # let the sender know that his message was sent successfully
             sock.send(bytes(sentence2.encode()))
+
+    def send_file(self, file, name):
+        if file not in self.file_list:
+            massage = Massage("server", "this file not exist", name)
+            self.send_message(massage)
+            return
+        f = open(file[1:])
+        outputdata = f.read()
+        index = 0
+        wnd = 1
+        seq = "0000"  # todo: check how many chars we need
+        while index < len(outputdata):
+            substr = outputdata[index:min((index + wnd + 1), len(outputdata))]
+            substr = substr + seq
+            intseq = int(seq) + 1
+            seq = "" + str(intseq)
+            while len(seq) < 4:
+                seq = "0" + seq
+            self.udpSocket.sendto(substr.encode(), (self.name_dict[name].ip,self.name_dict[name].port))
+            index = index + wnd + 1
+
+    # def checksum(self, substr):
+    #     sum = 0
+    #     for i in range(len(substr)):
+    #         sum = sum + substr[i]
+    #     return sum
 
     # this function disconnect the client
     def disconnect(self, name):

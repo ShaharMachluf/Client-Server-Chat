@@ -17,6 +17,8 @@ class ClientGUI:
         self.button_login = Button(pygame.Rect((8, 8), (70, 30)), "Log in", (255, 255, 128))
         self.button_getlist = Button(pygame.Rect((370, 8), (70, 30)), "get list", (255, 255, 128))
         self.button_send = Button(pygame.Rect((370, 50), (100, 30)), "send massage", (255, 255, 128))
+        self.button_fileList = Button(pygame.Rect((370, 92), (100, 30)), "file list", (255, 255, 128))
+        self.button_getfile = Button(pygame.Rect((370, 134), (100, 30)), "get file", (255, 255, 128))
         self.display()
 
     def display(self):
@@ -36,6 +38,10 @@ class ClientGUI:
                         self.button_getlist.pressed()
                     if self.button_send.rect.collidepoint(eve.pos):
                         self.button_send.pressed()
+                    if self.button_fileList.rect.collidepoint(eve.pos):
+                        self.button_fileList.pressed()
+                    if self.button_getfile.rect.collidepoint(eve.pos):
+                        self.button_getfile.pressed()
             pygame.draw.rect(self.screen, self.button_login.color, self.button_login.rect)
             if self.button_login.is_pressed:
                 if not enter:
@@ -51,6 +57,12 @@ class ClientGUI:
                 pygame.draw.rect(self.screen, self.button_send.color, self.button_send.rect)
                 button_send_text = self.Font.render(self.button_send.text, True, (0, 0, 0))
                 self.screen.blit(button_send_text, (self.button_send.rect.x, self.button_send.rect.y + 5))
+                pygame.draw.rect(self.screen, self.button_getfile.color, self.button_getfile.rect)
+                button_file_text = self.Font.render(self.button_getfile.text, True, (0, 0, 0))
+                self.screen.blit(button_file_text, (self.button_getfile.rect.x, self.button_getfile.rect.y + 5))
+                pygame.draw.rect(self.screen, self.button_fileList.color, self.button_fileList.rect)
+                button_fileList_text = self.Font.render(self.button_fileList.text, True, (0, 0, 0))
+                self.screen.blit(button_fileList_text, (self.button_fileList.rect.x, self.button_fileList.rect.y + 5))
                 if self.button_getlist.is_pressed:
                     client.get_list()
                     self.button_getlist.pressed()
@@ -59,6 +71,12 @@ class ClientGUI:
                     text = easygui.enterbox("enter your massage:", "send massage")
                     client.send_message(text, dest)
                     self.button_send.pressed()
+                if self.button_getfile.is_pressed:
+                    client.request_file()
+                    self.button_getfile.pressed()
+                if self.button_fileList.is_pressed:
+                    client.get_files()
+                    self.button_fileList.pressed()
             else:
                 if enter:
                     enter = False

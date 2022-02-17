@@ -13,6 +13,7 @@ class Client:
         self.lock = threading.Lock()
         serverName = server
         serverPort = 50001
+        self.udp_serverPort = 50002
         while flag:
             self.socket = socket(AF_INET, SOCK_STREAM)
             self.socket.connect((serverName, serverPort))
@@ -26,6 +27,7 @@ class Client:
                 self.name = easygui.enterbox("enter your user name:", "Log in")
             else:
                 flag = False
+        self.udp_socket = socket(AF_INET, SOCK_DGRAM)
         threading.Thread(target=self.get_message).start()
 
     def disconnect(self):
@@ -45,6 +47,14 @@ class Client:
     def get_list(self):
         # get a list of users from the server
         self.socket.send(bytes(("get_list " + self.name + "").encode()))
+
+    def get_files(self):
+        self.socket.send(bytes(("get_files " + self.name + "").encode()))
+
+    def request_file(self):
+        file = easygui.enterbox("enter file name:", "file")
+        self.socket.send(bytes(("file " + file + " " + self.name + "").encode()))
+    #     לשלוח לפונקצייה שמקשיבה דרך UDP
 
     def get_message(self):
         # receive messages from other users
