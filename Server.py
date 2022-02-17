@@ -125,7 +125,7 @@ class Server:
     #     sum = 0
     #     for i in range(len(substr)):
     #         sum = sum + substr[i]
-    #     return sum
+    #     return sumץ
 
     # this function disconnect the client
     def disconnect(self, name):
