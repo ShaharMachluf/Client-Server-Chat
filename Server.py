@@ -18,7 +18,6 @@ class Server:
         self.name_dict = {}
         self.first_port = 55000
         self.serverSocket.settimeout(3)
-        # self.lock = threading.Lock()  #todo: ask chen why is it in #?
 
     # this function works as the listener to the clients
     def listen(self, socket, name, lock):
@@ -120,7 +119,6 @@ def start(gui: ServerGUI):
                 if name in server.name_dict.keys():
                     sentence = "this name is taken, try again"
                     connectionSocket.send(bytes(sentence.encode()))
-                    # connectionSocket.close()
                     continue
                 client = ClientD(connectionSocket, addr, name, freePort)
                 server.port_dict[freePort] = client
