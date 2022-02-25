@@ -1,6 +1,10 @@
 import socket
 import threading
+import os
 from socket import *
+
+import easygui
+
 from Client_details import ClientD
 from threading import Thread
 from Massage import Massage
@@ -21,6 +25,7 @@ class Server:
         self.name_dict = {}
         self.first_port = 55000
         self.serverSocket.settimeout(3)
+        self.udpSocket.settimeout(3)
         self.file_list = ["file1", "file2"]  # todo: מאיפה אנחנו יודעים איזה קבצים יש
 
     # this function works as the listener to the clients
@@ -106,26 +111,48 @@ class Server:
             massage = Massage("server", "this file not exist", name)
             self.send_message(massage)
             return
-        f = open(file[1:])
-        outputdata = f.read()
-        index = 0
-        wnd = 1
-        seq = "0000"  # todo: check how many chars we need
-        while index < len(outputdata):
-            substr = outputdata[index:min((index + wnd + 1), len(outputdata))]
-            substr = substr + seq
-            intseq = int(seq) + 1
-            seq = "" + str(intseq)
-            while len(seq) < 4:
-                seq = "0" + seq
-            self.udpSocket.sendto(substr.encode(), (self.name_dict[name].ip,self.name_dict[name].port))
-            index = index + wnd + 1
-
-    # def checksum(self, substr):
-    #     sum = 0
-    #     for i in range(len(substr)):
-    #         sum = sum + substr[i]
-    #     return sumץ
+        SEPARATOR = "<SEPARATOR>"
+        sent = 0
+        wnd_size = 1024
+        ssthresh = 64000
+        file_size = os.path.getsize(file)
+        with open(file, "rb") as f:
+            while True:
+                outputdata = f.read(wnd_size)
+                if not outputdata:
+                    break
+                sent = sent + wnd_size
+                self.udpSocket.sendto((outputdata.decode() + SEPARATOR + str(sent)).encode(),
+                                      (self.name_dict[name].ip, self.name_dict[name].port))
+                try:
+                    ack, address = self.udpSocket.recvfrom(1024)
+                except Exception:
+                    ssthresh = wnd_size/2
+                    sent = sent - wnd_size
+                    f.seek(-wnd_size)
+                    wnd_size = 1024
+                    continue
+                if sent >= file_size / 2:
+                    massage = Massage("server", 'you like to proceed?', name)
+                    self.send_message(massage)
+                    break
+                if (wnd_size * 2) < 64000:
+                    if wnd_size >= ssthresh:
+                        wnd_size += 100
+                    else:
+                        wnd_size = wnd_size * 2
+            answer, address = self.udpSocket.recvfrom(1024)
+            answer = answer.decode()
+            if answer != "yes":
+                return
+            while True:
+                outputdata = f.read(wnd_size)
+                if not outputdata:
+                    break
+                sent = sent + wnd_size
+                self.udpSocket.sendto(outputdata, (self.name_dict[name].ip, self.name_dict[name].port))
+                if (wnd_size * 2) < 64000:
+                    wnd_size = wnd_size * 2
 
     # this function disconnect the client
     def disconnect(self, name):

@@ -11,12 +11,12 @@ class Client:
         self.listen = True
         self.name = name
         self.lock = threading.Lock()
-        serverName = server
+        self.serverName = server
         serverPort = 50001
         self.udp_serverPort = 50002
         while flag:
             self.socket = socket(AF_INET, SOCK_STREAM)
-            self.socket.connect((serverName, serverPort))
+            self.socket.connect((self.serverName, serverPort))
             sentence = "" + self.name
             self.socket.send(bytes(sentence.encode()))
             # see if the connection was accepted
@@ -63,7 +63,12 @@ class Client:
             try:
                 massage = self.socket.recv(1024).decode()
                 if massage != "":
-                    easygui.msgbox("you got new massage:\n" + massage, "new massage")
+                    if massage == 'you like to proceed?':
+                        bool = easygui.ynbox(massage, "file", ['Yes', 'No'])
+                        if bool:
+                            self.udp_socket.sendto("yes".encode(), (self.serverName, self.udp_serverPort))
+                    else:
+                        easygui.msgbox("you got new massage:\n" + massage, "new massage")
                 self.lock.release()
             except OSError:
                 break
