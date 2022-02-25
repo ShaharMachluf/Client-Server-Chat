@@ -150,9 +150,21 @@ class Server:
                 if not outputdata:
                     break
                 sent = sent + wnd_size
-                self.udpSocket.sendto(outputdata, (self.name_dict[name].ip, self.name_dict[name].port))
+                self.udpSocket.sendto((outputdata.decode() + SEPARATOR + str(sent)).encode(),
+                                      (self.name_dict[name].ip, self.name_dict[name].port))
+                try:
+                    ack, address = self.udpSocket.recvfrom(1024)
+                except Exception:
+                    ssthresh = wnd_size / 2
+                    sent = sent - wnd_size
+                    f.seek(-wnd_size)
+                    wnd_size = 1024
+                    continue
                 if (wnd_size * 2) < 64000:
-                    wnd_size = wnd_size * 2
+                    if wnd_size >= ssthresh:
+                        wnd_size += 100
+                    else:
+                        wnd_size = wnd_size * 2
 
     # this function disconnect the client
     def disconnect(self, name):
