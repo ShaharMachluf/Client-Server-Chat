@@ -52,9 +52,24 @@ class Client:
         self.socket.send(bytes(("get_files " + self.name + "").encode()))
 
     def request_file(self):
+        SEPARATOR = "<SEPARATOR>"
         file = easygui.enterbox("enter file name:", "file")
-        self.socket.send(bytes(("file " + file + " " + self.name + "").encode()))
-    #     לשלוח לפונקצייה שמקשיבה דרך UDP
+        self.socket.send(bytes(("file " + file + " " + self.name + "").encode()))  # request a file
+        time.sleep(1)  # wait for the server to be ready
+        self.udp_socket.sendto("ok".encode(), (self.serverName, self.udp_serverPort))  # open udp connection
+        ack = 0
+        with open(file, "wb") as f:
+            while True:
+                massage, address = self.udp_socket.recvfrom(64000)
+                massage = massage.decode()
+                if massage == "the file sent successfully":  # finished sending file
+                    easygui.msgbox("the file sent successfully", "file")
+                    return
+                data, seq = massage.split(SEPARATOR)
+                if int(seq) == ack:
+                    f.write(data.encode())  # write to the file
+                    self.udp_socket.sendto(str(ack).encode(), (self.serverName, self.udp_serverPort))  # ack
+                    ack += 1
 
     def get_message(self):
         # receive messages from other users
@@ -72,5 +87,3 @@ class Client:
                 self.lock.release()
             except OSError:
                 break
-
-
