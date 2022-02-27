@@ -1,6 +1,7 @@
 import socket
 import threading
 import os
+import time
 from socket import *
 
 import easygui
@@ -24,8 +25,9 @@ class Server:
         self.port_dict = {}
         self.name_dict = {}
         self.first_port = 55000
+        self.ack_list = []
         self.serverSocket.settimeout(3)
-        self.udpSocket.settimeout(3)
+        self.udpSocket.settimeout(0.2)
         self.file_list = ["file1", "file2"]  # todo: מאיפה אנחנו יודעים איזה קבצים יש
 
     # this function works as the listener to the clients
@@ -107,64 +109,88 @@ class Server:
             sock.send(bytes(sentence2.encode()))
 
     def send_file(self, file, name):
-        if file not in self.file_list:
+        if file not in self.file_list:  # check if file exist
             massage = Massage("server", "this file not exist", name)
             self.send_message(massage)
             return
         SEPARATOR = "<SEPARATOR>"
         sent = 0
-        wnd_size = 1024
-        ssthresh = 64000
+        wnd_size = 1
+        PACKET_SIZE = 64000
         file_size = os.path.getsize(file)
+        packet_list = []
+        connection, address = self.udpSocket.recvfrom(1024)  # receive client's socket details
         with open(file, "rb") as f:
-            while True:
-                outputdata = f.read(wnd_size)
+            for i in range(file_size):  # separate the file to packets
+                outputdata = f.read(PACKET_SIZE)
                 if not outputdata:
                     break
-                sent = sent + wnd_size
-                self.udpSocket.sendto((outputdata.decode() + SEPARATOR + str(sent)).encode(),
-                                      (self.name_dict[name].ip, self.name_dict[name].port))
-                try:
-                    ack, address = self.udpSocket.recvfrom(1024)
-                except Exception:
-                    ssthresh = wnd_size/2
-                    sent = sent - wnd_size
-                    f.seek(-wnd_size)
-                    wnd_size = 1024
-                    continue
-                if sent >= file_size / 2:
-                    massage = Massage("server", 'you like to proceed?', name)
-                    self.send_message(massage)
-                    break
-                if (wnd_size * 2) < 64000:
-                    if wnd_size >= ssthresh:
-                        wnd_size += 100
-                    else:
-                        wnd_size = wnd_size * 2
+                packet_list.append(outputdata)
+            ssthresh = len(packet_list)
+            while sent < len(packet_list)/2:  # send 50% of the file
+                threading.Thread(target=self.ack_listener, args=[wnd_size, sent]).start()  # follow the acks
+                for j in range(wnd_size):
+                    self.udpSocket.sendto((packet_list[sent].decode() + SEPARATOR + str(sent)).encode(),
+                                          address)
+                    sent += 1
+                time.sleep(0.2)
+                if -1 in self.ack_list:  # timeout
+                    sent = self.ack_list.index(-1)
+                    ssthresh = wnd_size
+                    wnd_size = 1
+                elif -2 in self.ack_list:  # wrong sequence
+                    sent = self.ack_list.index(-2)
+                    ssthresh = wnd_size
+                    wnd_size /= 2
+                else:
+                    if (wnd_size*2) < ssthresh:  # slow start
+                        wnd_size *= 2
+                    else:  # congestion avoidance
+                        wnd_size += 1
+            massage = Massage("server", 'sent 50%, you like to proceed?', name)
+            self.send_message(massage)
             answer, address = self.udpSocket.recvfrom(1024)
             answer = answer.decode()
             if answer != "yes":
                 return
-            while True:
-                outputdata = f.read(wnd_size)
-                if not outputdata:
-                    break
-                sent = sent + wnd_size
-                self.udpSocket.sendto((outputdata.decode() + SEPARATOR + str(sent)).encode(),
-                                      (self.name_dict[name].ip, self.name_dict[name].port))
-                try:
-                    ack, address = self.udpSocket.recvfrom(1024)
-                except Exception:
-                    ssthresh = wnd_size / 2
-                    sent = sent - wnd_size
-                    f.seek(-wnd_size)
-                    wnd_size = 1024
-                    continue
-                if (wnd_size * 2) < 64000:
-                    if wnd_size >= ssthresh:
-                        wnd_size += 100
+            while sent < len(packet_list):  # send the rest of the file
+                threading.Thread(target=self.ack_listener, args=[wnd_size, sent]).start()
+                for j in range(wnd_size):
+                    self.udpSocket.sendto((packet_list[sent].decode() + SEPARATOR + str(sent)).encode(),
+                                          address)
+                    sent += 1
+                time.sleep(0.2)
+                if -1 in self.ack_list:
+                    sent = self.ack_list.index(-1)
+                    ssthresh = wnd_size
+                    wnd_size = 1
+                elif -2 in self.ack_list:
+                    sent = self.ack_list.index(-2)
+                    ssthresh = wnd_size
+                    wnd_size /= 2
+                else:
+                    if (wnd_size * 2) < ssthresh:
+                        wnd_size *= 2
                     else:
-                        wnd_size = wnd_size * 2
+                        wnd_size += 1
+            self.udpSocket.sendto("the file sent successfully".encode(),
+                                  address)
+
+    # listen to acks from the client
+    def ack_listener(self, size, sent):
+        self.ack_list.clear()
+        acked = sent+1
+        for i in range(size):
+            try:
+                ack, address = self.udpSocket.recvfrom(1024)
+                self.ack_list[i] = int(ack.decode())
+                if self.ack_list[i] != acked:
+                    self.ack_list[i] = -2
+                    return
+                acked += 1
+            except Exception:  # timeout
+                self.ack_list[i] = -1
+                return
 
     # this function disconnect the client
     def disconnect(self, name):
