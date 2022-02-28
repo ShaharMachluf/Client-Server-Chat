@@ -28,7 +28,7 @@ class Server:
         self.ack_list = []
         self.serverSocket.settimeout(3)
         self.udpSocket.settimeout(0.2)
-        self.file_list = ["file1", "file2"]  # todo: מאיפה אנחנו יודעים איזה קבצים יש
+        self.file_list = ["1mb.txt", "project.pdf", "OSI-Model.png"]
 
     # this function works as the listener to the clients
     def listen(self, socket, name, lock):
@@ -119,6 +119,7 @@ class Server:
         PACKET_SIZE = 64000
         file_size = os.path.getsize(file)
         packet_list = []
+        end_wnd = 0
         connection, address = self.udpSocket.recvfrom(1024)  # receive client's socket details
         with open(file, "rb") as f:
             for i in range(file_size):  # separate the file to packets
@@ -135,14 +136,15 @@ class Server:
                     sent += 1
                 time.sleep(0.2)
                 if -1 in self.ack_list:  # timeout
-                    sent = self.ack_list.index(-1)
+                    sent = self.ack_list.index(-1) + end_wnd + 1
                     ssthresh = wnd_size
                     wnd_size = 1
                 elif -2 in self.ack_list:  # wrong sequence
-                    sent = self.ack_list.index(-2)
+                    sent = self.ack_list.index(-2) + end_wnd + 1
                     ssthresh = wnd_size
                     wnd_size /= 2
                 else:
+                    end_wnd += wnd_size
                     if (wnd_size*2) < ssthresh:  # slow start
                         wnd_size *= 2
                     else:  # congestion avoidance
