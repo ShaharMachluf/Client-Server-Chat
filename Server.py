@@ -160,16 +160,21 @@ class Server:
             while True:
                 try:
                     answer, address = self.udpSocket.recvfrom(1024)
+                    break
                 except Exception:
                     continue
             answer = answer.decode()
+            print(answer)
             if answer != "yes":
                 self.udpSocket.sendto("stop".encode(), address)
                 return
+            print("yes")
             wnd_size = 1
             while sent < len(packet_list):  # send the rest of the file
+                print("while")
                 threading.Thread(target=self.ack_listener, args=[wnd_size, sent]).start()
                 for j in range(wnd_size):
+                    print("for")
                     self.udpSocket.sendto((packet_list[sent].decode() + SEPARATOR + str(sent)).encode(),
                                           address)
                     sent += 1

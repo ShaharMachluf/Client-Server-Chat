@@ -67,6 +67,9 @@ class Client:
                     if bool:
                         self.udp_socket.sendto("yes".encode(), (self.serverName, self.udp_serverPort))
                         continue
+                    else:
+                        self.udp_socket.sendto("no".encode(), (self.serverName, self.udp_serverPort))
+                        return
                 elif massage == "the file sent successfully":  # finished sending file
                     easygui.msgbox("the file sent successfully", "file")
                     return
