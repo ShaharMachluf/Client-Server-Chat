@@ -62,8 +62,15 @@ class Client:
             while True:
                 massage, address = self.udp_socket.recvfrom(64000)
                 massage = massage.decode()
-                if massage == "the file sent successfully":  # finished sending file
+                if massage == 'sent 50%, you like to proceed?':
+                    bool = easygui.ynbox(massage, "file", ['Yes', 'No'])
+                    if bool:
+                        self.udp_socket.sendto("yes".encode(), (self.serverName, self.udp_serverPort))
+                        continue
+                elif massage == "the file sent successfully":  # finished sending file
                     easygui.msgbox("the file sent successfully", "file")
+                    return
+                elif massage == "stop":
                     return
                 data, seq = massage.split(SEPARATOR)
                 if int(seq) == ack:
@@ -78,7 +85,7 @@ class Client:
             try:
                 massage = self.socket.recv(1024).decode()
                 if massage != "":
-                    if massage == 'you like to proceed?':
+                    if massage == 'sent 50%, you like to proceed?':
                         bool = easygui.ynbox(massage, "file", ['Yes', 'No'])
                         if bool:
                             self.udp_socket.sendto("yes".encode(), (self.serverName, self.udp_serverPort))

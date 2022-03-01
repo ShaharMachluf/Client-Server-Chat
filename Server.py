@@ -142,11 +142,11 @@ class Server:
                     sent += 1
                 time.sleep(0.2)
                 if -1 in self.ack_list:  # timeout
-                    sent = self.ack_list.index(-1) + end_wnd + 1
+                    sent = self.ack_list.index(-1) + end_wnd
                     ssthresh = wnd_size
                     wnd_size = 1
                 elif -2 in self.ack_list:  # wrong sequence
-                    sent = self.ack_list.index(-2) + end_wnd + 1
+                    sent = self.ack_list.index(-2) + end_wnd
                     ssthresh = wnd_size
                     wnd_size = max(1, int(wnd_size/2))
                 else:
@@ -155,8 +155,8 @@ class Server:
                         wnd_size *= 2
                     else:  # congestion avoidance
                         wnd_size += 1
-            massage = Massage("server", 'sent 50%, you like to proceed?', name)
-            self.send_message(massage)
+            self.udpSocket.sendto('sent 50%, you like to proceed?'.encode(),
+                                  address)
             while True:
                 try:
                     answer, address = self.udpSocket.recvfrom(1024)
@@ -164,7 +164,9 @@ class Server:
                     continue
             answer = answer.decode()
             if answer != "yes":
+                self.udpSocket.sendto("stop".encode(), address)
                 return
+            wnd_size = 1
             while sent < len(packet_list):  # send the rest of the file
                 threading.Thread(target=self.ack_listener, args=[wnd_size, sent]).start()
                 for j in range(wnd_size):
@@ -173,14 +175,15 @@ class Server:
                     sent += 1
                 time.sleep(0.2)
                 if -1 in self.ack_list:
-                    sent = self.ack_list.index(-1) + end_wnd + 1
+                    sent = self.ack_list.index(-1) + end_wnd
                     ssthresh = wnd_size
                     wnd_size = 1
                 elif -2 in self.ack_list:
-                    sent = self.ack_list.index(-2) + end_wnd + 1
+                    sent = self.ack_list.index(-2) + end_wnd
                     ssthresh = wnd_size
-                    wnd_size /= 2
+                    wnd_size = max(1, int(wnd_size/2))
                 else:
+                    end_wnd += wnd_size
                     if (wnd_size * 2) < ssthresh:
                         if (wnd_size*2 + sent) > len(packet_list):
                             wnd_size = len(packet_list) - sent
