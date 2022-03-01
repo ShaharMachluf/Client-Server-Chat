@@ -116,12 +116,18 @@ class Server:
         SEPARATOR = "<SEPARATOR>"
         sent = 0
         wnd_size = 1
-        PACKET_SIZE = 64000
-        file_size = os.path.getsize(file)
+        PACKET_SIZE = 63000
+        file_size = os.path.getsize("files/" + file)
         packet_list = []
         end_wnd = 0
-        connection, address = self.udpSocket.recvfrom(1024)  # receive client's socket details
-        with open(file, "rb") as f:
+        while True:
+            try:
+                connection, address = self.udpSocket.recvfrom(1024)  # receive client's socket details
+            except Exception:
+                continue
+            if connection != "":
+                break
+        with open("files/" + file, "rb") as f:
             for i in range(file_size):  # separate the file to packets
                 outputdata = f.read(PACKET_SIZE)
                 if not outputdata:
@@ -142,7 +148,7 @@ class Server:
                 elif -2 in self.ack_list:  # wrong sequence
                     sent = self.ack_list.index(-2) + end_wnd + 1
                     ssthresh = wnd_size
-                    wnd_size /= 2
+                    wnd_size = max(1, int(wnd_size/2))
                 else:
                     end_wnd += wnd_size
                     if (wnd_size*2) < ssthresh:  # slow start
@@ -151,7 +157,11 @@ class Server:
                         wnd_size += 1
             massage = Massage("server", 'sent 50%, you like to proceed?', name)
             self.send_message(massage)
-            answer, address = self.udpSocket.recvfrom(1024)
+            while True:
+                try:
+                    answer, address = self.udpSocket.recvfrom(1024)
+                except Exception:
+                    continue
             answer = answer.decode()
             if answer != "yes":
                 return
@@ -163,16 +173,19 @@ class Server:
                     sent += 1
                 time.sleep(0.2)
                 if -1 in self.ack_list:
-                    sent = self.ack_list.index(-1)
+                    sent = self.ack_list.index(-1) + end_wnd + 1
                     ssthresh = wnd_size
                     wnd_size = 1
                 elif -2 in self.ack_list:
-                    sent = self.ack_list.index(-2)
+                    sent = self.ack_list.index(-2) + end_wnd + 1
                     ssthresh = wnd_size
                     wnd_size /= 2
                 else:
                     if (wnd_size * 2) < ssthresh:
-                        wnd_size *= 2
+                        if (wnd_size*2 + sent) > len(packet_list):
+                            wnd_size = len(packet_list) - sent
+                        else:
+                            wnd_size *= 2
                     else:
                         wnd_size += 1
             self.udpSocket.sendto("the file sent successfully".encode(),
@@ -180,8 +193,8 @@ class Server:
 
     # listen to acks from the client
     def ack_listener(self, size, sent):
-        self.ack_list.clear()
-        acked = sent+1
+        self.ack_list = [0] * size
+        acked = sent + 1
         for i in range(size):
             try:
                 ack, address = self.udpSocket.recvfrom(1024)
