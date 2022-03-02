@@ -3,6 +3,7 @@ from Massage import Massage
 import threading
 import easygui
 import time
+import png
 
 
 class Client:
@@ -65,32 +66,46 @@ class Client:
         time.sleep(1)  # wait for the server to be ready
         self.udp_socket.sendto("ok".encode(), (self.serverName, self.udp_serverPort))  # open udp connection
         massage, address = self.udp_socket.recvfrom(64000)
-        if massage.decode() == "this file not exist":
-            easygui.msgbox("this file not exist", "file")
-            return
+        try:
+            massage = massage.decode()
+            if massage == "this file not exist":
+                easygui.msgbox("this file not exist", "file")
+                return
+        except Exception:
+            pass
         ack = 0
+        file_name_split = file.split(".")
+        file_type = file_name_split[-1]
         with open(file, "wb") as f:
             while True:
                 massage, address = self.udp_socket.recvfrom(64000)
-                massage = massage.decode()
-                if massage == 'sent 50%, you like to proceed?':
-                    bool = easygui.ynbox(massage, "file", ['Yes', 'No'])
-                    if bool:
-                        self.udp_socket.sendto("yes".encode(), address)
-                        continue
-                    else:
-                        self.udp_socket.sendto("no".encode(), address)
+                try:
+                    massage = massage.decode()
+                    if massage == 'sent 50%, you like to proceed?':
+                        bool = easygui.ynbox(massage, "file", ['Yes', 'No'])
+                        if bool:
+                            self.udp_socket.sendto("yes".encode(), address)
+                            continue
+                        else:
+                            self.udp_socket.sendto("no".encode(), address)
+                            return
+                    elif massage == "the file sent successfully":  # finished sending file
+                        easygui.msgbox("the file sent successfully", "file")
                         return
-                elif massage == "the file sent successfully":  # finished sending file
-                    easygui.msgbox("the file sent successfully", "file")
-                    return
-                elif massage == "stop":
-                    return
-                data, seq = massage.split(SEPARATOR)
-                if int(seq) == ack:
-                    f.write(data.encode())  # write to the file
-                    self.udp_socket.sendto(str(ack).encode(), (self.serverName, self.udp_serverPort))  # ack
-                    ack += 1
+                    elif massage == "stop":
+                        return
+                    data, seq = massage.split(SEPARATOR)
+                    if int(seq) == ack:
+                        f.write(data.encode())  # write to the file
+                        self.udp_socket.sendto(str(ack).encode(), (self.serverName, self.udp_serverPort))  # ack
+                        ack += 1
+                except Exception:
+                    data, seq = massage.split(SEPARATOR.encode())
+                    if int(seq.decode()) == ack:
+                        f.write(data)  # write to the file
+                        self.udp_socket.sendto(str(ack).encode(), (self.serverName, self.udp_serverPort))  # ack
+                        ack += 1
+
 
     def get_message(self):
         # receive messages from other users

@@ -31,7 +31,7 @@ class Server:
         self.ack_list = []
         self.serverSocket.settimeout(3)
         self.udpSocket.settimeout(0.2)
-        self.file_list = ["1mb.txt", "project.pdf", "OSI-Model.png"]
+        self.file_list = ["1mb.txt", "project.pdf", "HelloWorld.html"]
 
     # this function works as the listener to the clients
     def listen(self, socket, name, lock):
@@ -139,7 +139,7 @@ class Server:
                 threading.Thread(target=self.ack_listener, args=[wnd_size, sent]).start()  # follow the acks
                 for j in range(wnd_size):
                     try:
-                        self.udpSocket.sendto((packet_list[sent].decode() + SEPARATOR + str(sent)).encode(),
+                        self.udpSocket.sendto(packet_list[sent] + SEPARATOR.encode() + str(sent).encode(),
                                           address)
                     except Exception:
                         j -= 1
@@ -177,7 +177,7 @@ class Server:
                 threading.Thread(target=self.ack_listener, args=[wnd_size, sent]).start()
                 for j in range(wnd_size):
                     try:
-                        self.udpSocket.sendto((packet_list[sent].decode() + SEPARATOR + str(sent)).encode(),
+                        self.udpSocket.sendto(packet_list[sent] + SEPARATOR.encode() + str(sent).encode(),
                                           address)
                     except Exception:
                         j -= 1
