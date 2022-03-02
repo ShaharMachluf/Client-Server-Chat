@@ -268,9 +268,13 @@ def start(gui: ServerGUI):
                 connectionSocket.send(bytes(sentence.encode()))
                 message = Massage("server", name + " is connected")
                 server.send_message(message)
+            for i in server.name_dict.keys():
+                massage =Massage("server", "server is disconnected, please press \"log out\"", i)
+                server.send_message(massage)
+            time.sleep(3)
             server.serverSocket.close()
             print("the server is closed")
-            exit(0) #להשאיר את זה?
+            exit(0)
 
 
 if __name__ == '__main__':

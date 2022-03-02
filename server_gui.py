@@ -12,7 +12,6 @@ class ServerGUI:
         self.clock = pygame.time.Clock()
         self.Font = pygame.font.SysFont('ariel', 30)
         self.button_start = Button(pygame.Rect((65, 65), (70, 40)), "start", (255, 255, 128))
-        # self.display()
 
     def display(self):
         while True:
