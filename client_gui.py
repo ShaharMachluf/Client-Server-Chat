@@ -48,6 +48,10 @@ class ClientGUI:
                     name = easygui.enterbox('enter your user name:', 'Log in')
                     server = easygui.enterbox('enter your server name:', 'Log in')
                     client = Client(name, server)
+                    if not client.connect:
+                        enter = False
+                        self.button_login.pressed()
+                        continue
                     enter = True
                     pygame.display.set_caption(client.name)
                 self.button_login.text = "Log out"

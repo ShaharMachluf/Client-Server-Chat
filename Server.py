@@ -21,6 +21,9 @@ class Server:
         self.udpPort = 50002
         self.udpSocket = socket(AF_INET, SOCK_DGRAM)
         self.udpSocket.bind(('127.0.0.1', self.udpPort))
+        self.udpPort2 = 50003
+        self.udpSocket2 = socket(AF_INET, SOCK_DGRAM)
+        self.udpSocket2.bind(('127.0.0.1', self.udpPort2))
         print("the server is ready to receive")
         self.port_dict = {}
         self.name_dict = {}
@@ -43,7 +46,6 @@ class Server:
                 continue
             list1 = data.split()
             if list1[0] == "disconnect":
-                print("enter")
                 self.disconnect(list1[1])
                 break
             if list1[0] == "get_files":
@@ -109,9 +111,17 @@ class Server:
             sock.send(bytes(sentence2.encode()))
 
     def send_file(self, file, name):
+        while True:
+            try:
+                connection, address = self.udpSocket.recvfrom(1024)  # receive client's socket details
+            except Exception:
+                continue
+            if connection.decode() != "":
+                break
         if file not in self.file_list:  # check if file exist
-            massage = Massage("server", "this file not exist", name)
-            self.send_message(massage)
+            # massage = Massage("server", "this file not exist", name)
+            # self.send_message(massage)
+            self.udpSocket.sendto("this file not exist".encode(), address)
             return
         SEPARATOR = "<SEPARATOR>"
         sent = 0
@@ -120,13 +130,6 @@ class Server:
         file_size = os.path.getsize("files/" + file)
         packet_list = []
         end_wnd = 0
-        while True:
-            try:
-                connection, address = self.udpSocket.recvfrom(1024)  # receive client's socket details
-            except Exception:
-                continue
-            if connection != "":
-                break
         with open("files/" + file, "rb") as f:
             for i in range(file_size):  # separate the file to packets
                 outputdata = f.read(PACKET_SIZE)
@@ -155,29 +158,27 @@ class Server:
                         wnd_size *= 2
                     else:  # congestion avoidance
                         wnd_size += 1
-            self.udpSocket.sendto('sent 50%, you like to proceed?'.encode(),
+            self.udpSocket2.sendto('sent 50%, you like to proceed?'.encode(),
                                   address)
             while True:
                 try:
-                    answer, address = self.udpSocket.recvfrom(1024)
+                    answer, address = self.udpSocket2.recvfrom(1024)
                     break
                 except Exception:
                     continue
-            answer = answer.decode()
-            print(answer)
-            if answer != "yes":
+            answer2 = answer.decode()
+            if answer2 != "yes":
                 self.udpSocket.sendto("stop".encode(), address)
                 return
-            print("yes")
             wnd_size = 1
             while sent < len(packet_list):  # send the rest of the file
-                print("while")
                 threading.Thread(target=self.ack_listener, args=[wnd_size, sent]).start()
                 for j in range(wnd_size):
-                    print("for")
                     self.udpSocket.sendto((packet_list[sent].decode() + SEPARATOR + str(sent)).encode(),
                                           address)
                     sent += 1
+                    if sent >= len(packet_list):
+                        break
                 time.sleep(0.2)
                 if -1 in self.ack_list:
                     sent = self.ack_list.index(-1) + end_wnd
@@ -263,6 +264,7 @@ def start(gui: ServerGUI):
                 server.send_message(message)
             server.serverSocket.close()
             print("the server is closed")
+            exit(0) #להשאיר את זה?
 
 
 if __name__ == '__main__':

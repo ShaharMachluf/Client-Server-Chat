@@ -8,6 +8,7 @@ import time
 class Client:
     def __init__(self, name, server):
         flag = True
+        self.connect = True
         self.listen = True
         self.name = name
         self.lock = threading.Lock()
@@ -16,7 +17,12 @@ class Client:
         self.udp_serverPort = 50002
         while flag:
             self.socket = socket(AF_INET, SOCK_STREAM)
-            self.socket.connect((self.serverName, serverPort))
+            try:
+                self.socket.connect((self.serverName, serverPort))
+            except OSError:
+                easygui.msgbox("connection fail", "connect")
+                self.connect = False
+                return
             sentence = "" + self.name
             self.socket.send(bytes(sentence.encode()))
             # see if the connection was accepted
@@ -28,6 +34,7 @@ class Client:
             else:
                 flag = False
         self.udp_socket = socket(AF_INET, SOCK_DGRAM)
+        self.file_flag = False
         threading.Thread(target=self.get_message).start()
 
     def disconnect(self):
@@ -57,6 +64,10 @@ class Client:
         self.socket.send(bytes(("file " + file + " " + self.name + "").encode()))  # request a file
         time.sleep(1)  # wait for the server to be ready
         self.udp_socket.sendto("ok".encode(), (self.serverName, self.udp_serverPort))  # open udp connection
+        massage, address = self.udp_socket.recvfrom(64000)
+        if massage.decode() == "this file not exist":
+            easygui.msgbox("this file not exist", "file")
+            return
         ack = 0
         with open(file, "wb") as f:
             while True:
@@ -65,10 +76,10 @@ class Client:
                 if massage == 'sent 50%, you like to proceed?':
                     bool = easygui.ynbox(massage, "file", ['Yes', 'No'])
                     if bool:
-                        self.udp_socket.sendto("yes".encode(), (self.serverName, self.udp_serverPort))
+                        self.udp_socket.sendto("yes".encode(), address)
                         continue
                     else:
-                        self.udp_socket.sendto("no".encode(), (self.serverName, self.udp_serverPort))
+                        self.udp_socket.sendto("no".encode(), address)
                         return
                 elif massage == "the file sent successfully":  # finished sending file
                     easygui.msgbox("the file sent successfully", "file")
@@ -88,12 +99,7 @@ class Client:
             try:
                 massage = self.socket.recv(1024).decode()
                 if massage != "":
-                    if massage == 'sent 50%, you like to proceed?':
-                        bool = easygui.ynbox(massage, "file", ['Yes', 'No'])
-                        if bool:
-                            self.udp_socket.sendto("yes".encode(), (self.serverName, self.udp_serverPort))
-                    else:
-                        easygui.msgbox("you got new massage:\n" + massage, "new massage")
+                    easygui.msgbox("you got new massage:\n" + massage, "new massage")
                 self.lock.release()
             except OSError:
                 break
