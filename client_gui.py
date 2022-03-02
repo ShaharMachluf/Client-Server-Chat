@@ -94,8 +94,5 @@ class ClientGUI:
             self.clock.tick(60)
 
 
-# def start():
-#     gui = ClientGUI()
-
 if __name__ == '__main__':
     ClientGUI()

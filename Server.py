@@ -16,14 +16,14 @@ class Server:
     def __init__(self):
         self.serverPort = 50001
         self.serverSocket = socket(AF_INET, SOCK_STREAM)
-        self.serverSocket.bind(('127.0.0.1', self.serverPort))
+        self.serverSocket.bind(('', self.serverPort))
         self.serverSocket.listen(1000)
         self.udpPort = 50002
         self.udpSocket = socket(AF_INET, SOCK_DGRAM)
-        self.udpSocket.bind(('127.0.0.1', self.udpPort))
+        self.udpSocket.bind(('', self.udpPort))
         self.udpPort2 = 50003
         self.udpSocket2 = socket(AF_INET, SOCK_DGRAM)
-        self.udpSocket2.bind(('127.0.0.1', self.udpPort2))
+        self.udpSocket2.bind(('', self.udpPort2))
         print("the server is ready to receive")
         self.port_dict = {}
         self.name_dict = {}
@@ -119,8 +119,6 @@ class Server:
             if connection.decode() != "":
                 break
         if file not in self.file_list:  # check if file exist
-            # massage = Massage("server", "this file not exist", name)
-            # self.send_message(massage)
             self.udpSocket.sendto("this file not exist".encode(), address)
             return
         SEPARATOR = "<SEPARATOR>"
@@ -140,8 +138,12 @@ class Server:
             while sent < len(packet_list)/2:  # send 50% of the file
                 threading.Thread(target=self.ack_listener, args=[wnd_size, sent]).start()  # follow the acks
                 for j in range(wnd_size):
-                    self.udpSocket.sendto((packet_list[sent].decode() + SEPARATOR + str(sent)).encode(),
+                    try:
+                        self.udpSocket.sendto((packet_list[sent].decode() + SEPARATOR + str(sent)).encode(),
                                           address)
+                    except Exception:
+                        j -= 1
+                        continue
                     sent += 1
                 time.sleep(0.2)
                 if -1 in self.ack_list:  # timeout
@@ -174,8 +176,12 @@ class Server:
             while sent < len(packet_list):  # send the rest of the file
                 threading.Thread(target=self.ack_listener, args=[wnd_size, sent]).start()
                 for j in range(wnd_size):
-                    self.udpSocket.sendto((packet_list[sent].decode() + SEPARATOR + str(sent)).encode(),
+                    try:
+                        self.udpSocket.sendto((packet_list[sent].decode() + SEPARATOR + str(sent)).encode(),
                                           address)
+                    except Exception:
+                        j -= 1
+                        continue
                     sent += 1
                     if sent >= len(packet_list):
                         break
