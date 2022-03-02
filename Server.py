@@ -3,9 +3,7 @@ import threading
 import os
 import time
 from socket import *
-
 import easygui
-
 from Client_details import ClientD
 from threading import Thread
 from Massage import Massage

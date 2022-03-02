@@ -73,8 +73,6 @@ class Client:
         except Exception:
             pass
         ack = 0
-        file_name_split = file.split(".")
-        file_type = file_name_split[-1]
         with open(file, "wb") as f:
             while True:
                 massage, address = self.udp_socket.recvfrom(64000)
