@@ -3,7 +3,6 @@ from Massage import Massage
 import threading
 import easygui
 import time
-import png
 
 
 class Client:
