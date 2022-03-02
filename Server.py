@@ -29,7 +29,7 @@ class Server:
         self.ack_list = []
         self.serverSocket.settimeout(3)
         self.udpSocket.settimeout(0.2)
-        self.file_list = ["1mb.txt", "project.pdf", "HelloWorld.html"]
+        self.file_list = ["1mb.txt", "project.pdf", "HelloWorld.html", "C++.xlsx"]
 
     # this function works as the listener to the clients
     def listen(self, socket, name, lock):
