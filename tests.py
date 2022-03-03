@@ -4,7 +4,7 @@ from Client import Client
 from Server import Server
 
 
-class TestClient(TestCase):
+class Tests(TestCase):
     # in order to do these tests you need to run the server
 
     def test_send_message(self):
