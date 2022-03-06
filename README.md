@@ -15,7 +15,7 @@ The server has number of threads:
 - When a client is connected to the server, a thread starts running the function "listen" which is responsible to listening to requests that come from that certain client and takes care of them.
 ### Client
 In this class we implemented the client side of the program.  
-A client is able to connect to the server (TCP), recieve messages(TCP), get a list of the clients that are connected to the server (TCP), send messages to other clients (TCP), disconnect from the server, get a list of the files in the server (TCP), request a file from the server (TCP) and download is (UDP).  
+A client is able to connect to the server (TCP), recieve messages(TCP), get a list of the clients that are connected to the server (TCP), send messages to other clients (if you want to send a message to evreybody- don't write anything in the destination) (TCP), disconnect from the server, get a list of the files in the server (TCP), request a file from the server (TCP) and download is (UDP).  
 The client has to threads:
 - The main thread runs the client's GUI and from there the client can do all of the actions that are listed above.
 - A thread that runs "get_message" which is responsible to listen to incoming messages from the server and other clients.
